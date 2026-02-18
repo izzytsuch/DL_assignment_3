@@ -34,15 +34,15 @@ class FMNISTNeuralNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.input_to_hidden_layer = nn.Linear(28 * 28, 1000)
-        self.batch_norm = nn.BatchNorm1d(1000)
+        #self.batch_norm = nn.BatchNorm1d(1000)
         self.hidden_layer_activation = nn.ReLU()
-        self.dropout = nn.Dropout(0.25)
+        #self.dropout = nn.Dropout(0.25)
         self.hidden_to_output_layer = nn.Linear(1000, 10)
     def forward(self, x):
         x = self.input_to_hidden_layer(x)
-        x = self.batch_norm(x)
+        #x = self.batch_norm(x)
         x = self.hidden_layer_activation(x)
-        x = self.dropout(x)
+        #x = self.dropout(x)
         x = self.hidden_to_output_layer(x)
         return x
     
@@ -94,9 +94,9 @@ for epoch in range(n_epochs):
     losses.append(epoch_loss)
     accuracies.append(epoch_accuracy)
 
-mnist_test = datasets.FashionMNIST(data_folder, download=True, train=False)
-x_test = mnist_test.data
-y_test = mnist_test.targets
+fmnist_test = datasets.FashionMNIST(data_folder, download=True, train=False)
+x_test = fmnist_test.data
+y_test = fmnist_test.targets
 
 test_dataset = FMNISTDataset(x_test, y_test)
 test_dl = DataLoader(test_dataset, batch_size=32, shuffle=True)
