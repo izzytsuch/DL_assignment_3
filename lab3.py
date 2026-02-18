@@ -91,7 +91,7 @@ def accuracy(x, y, model):
 
     return s.cpu().numpy()
 
-def do_experiment(model, train_dl, test_dl, n_epochs):
+def do_experiment(model, train_dl, test_dl):
     #model = model.to(device)
 
     loss_func = nn.CrossEntropyLoss()
@@ -150,18 +150,20 @@ def main():
     nn.ReLU(),
     nn.Linear(200, 10)
     ).to(device)
-    
-    losses, train_acc, test_acc, total_time = do_experiment(
-        model, train_dl, test_dl, device, n_epochs=5
-    )
 
-    print("Final Test Accuracy:", test_acc[-1])
-    print("Training Time:", total_time)
+    do_experiment(model, train_dl, test_dl)
+    
+    #losses, train_acc, test_acc, total_time = do_experiment(
+        #model, train_dl, test_dl
+    #)
+
+    #print("Final Test Accuracy:", test_acc[-1])
+    #print("Training Time:", total_time)
     #study 1
     #study 2
     #study 3
     #study 4
-    print()
+
 
 if __name__ == "__main__":
     main()
