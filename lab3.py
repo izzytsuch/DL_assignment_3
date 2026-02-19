@@ -8,14 +8,14 @@ from torchsummary import summary
 from torch.optim import Adam
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 #next steps:
 #1. implement model_parameters function specified in lab
 #2. run BN and droupout experiment 
 #3. split up do_experiment function into separate for training 
-#.  and/or testing, and visualization 
-#4. clean up visualization: label graphs based on study
-#   and take into account time
+#.  and testing?
+#4. clean up visualization
 
 #notes:
 #i've used a lot of the code that we were given in lectures, but
@@ -114,6 +114,7 @@ def do_experiment(model, train_dl, test_dl):
     opt = Adam(model.parameters(), lr=1e-3)
 
     losses, accuracies, n_epochs = [], [], 5
+    start_time = time.perf_counter()
     for epoch in range(n_epochs):
         print(f"Running epoch {epoch + 1} of {n_epochs}")
 
@@ -133,27 +134,37 @@ def do_experiment(model, train_dl, test_dl):
         losses.append(epoch_loss)
         accuracies.append(epoch_accuracy)
 
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    print(f"Training time: {elapsed_time:.6f} seconds")
+    
     epoch_accuracies = []
     for batch in test_dl:
         x, y = batch
         batch_acc = accuracy(x, y, model)
         epoch_accuracies.append(batch_acc)
-
     print(f"Test accuracy: {np.mean(epoch_accuracies)}")
 
+    
+    #plt.show()
+    return n_epochs, losses, accuracies
+
+def visualize(n_epochs, losses, accuracies, i, name):
     plt.figure(figsize=(13,3))
     plt.subplot(121)
-    plt.title('Training Loss value over epochs')
+    plt.title(f'Training Loss value over epochs - {name}')
     plt.plot(np.arange(n_epochs) + 1, losses)
     plt.subplot(122)
-    plt.title('Training Accuracy value over epochs') #specify version
+    plt.title(f'Training Accuracy value over epochs - {name}') #specify version
     plt.plot(np.arange(n_epochs) + 1, accuracies)
-    plt.show()
+    plt.savefig(f"plot_{i}.png")
 
-def count_parameters():
-    return 2
+
+def count_parameters(model):
+    return model.parameters()
 
 def main():
+    i = 0 
     #study 1
     # model = nn.Sequential(
     # nn.Conv2d(1, 64, kernel_size=3),
@@ -168,24 +179,32 @@ def main():
     # nn.Linear(200, 10)
     # ).to(device)
     model = CNN().to(device)
-    do_experiment(model, train_dl, test_dl)
+    n_epochs, losses, accuracies = do_experiment(model, train_dl, test_dl)
+    visualize(n_epochs, losses, accuracies, i, name="CNN")
+    i += 1
 
    #call function 
     mlp = MLP().to(device)
-    do_experiment(mlp, train_dl, test_dl)
+    n_epochs, losses, accuracies = do_experiment(mlp, train_dl, test_dl)
+    visualize(n_epochs, losses, accuracies, i, name="MLP")
+    i += 1
     
     #study 2
     kernel_size= [2, 3, 5, 7, 9]
     for k in kernel_size:
         model = CNN(kernel_size=k).to(device)
-        do_experiment(model, train_dl, test_dl)
+        n_epochs, losses, accuracies = do_experiment(model, train_dl, test_dl)
+        visualize(n_epochs, losses, accuracies, i, name=(f"kernel size: {k}"))
+        i += 1
 
 
     #study 3
     filters = [5, 10, 15, 20, 25]
     for f in filters:
         model = CNN(filters=f).to(device)
-        do_experiment(model, train_dl, test_dl)
+        n_epochs, losses, accuracies = do_experiment(model, train_dl, test_dl)
+        visualize(n_epochs, losses, accuracies, i, name=(f"filter size: {f}"))
+        i += 1
 
     #study 4
 
