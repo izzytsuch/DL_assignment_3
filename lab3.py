@@ -9,6 +9,9 @@ from torch.optim import Adam
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from prettytable import PrettyTable 
+#used https://www.geeksforgeeks.org/python/how-to-make-a-table-in-python/ to find prettytable
+
 
 #next steps:
 #1. implement model_parameters function specified in lab
@@ -68,7 +71,7 @@ class CNN(nn.Module):
                  use_batchnorm=False, 
                  use_dropout=False, 
                  dropout_p=0.3):
-       super().__init__()
+        super().__init__()
 
         layers=[]
                     
@@ -76,7 +79,7 @@ class CNN(nn.Module):
         layers.append(nn.Conv2d(1,filters,kernel_size))
         if use_batchnorm:
            layers.append(nn.BatchNorm2d(filters))
-        layers.apend(nn.RelU())
+        layers.append(nn.ReLU())
         if use_dropout:
            layers.append(nn.Dropout2d(dropout_p))
         layers.append(nn.MaxPool2d(2))
@@ -85,7 +88,7 @@ class CNN(nn.Module):
         layers.append(nn.Conv2d(filters,filters,kernel_size))
         if use_batchnorm:
            layers.append(nn.BatchNorm2d(filters))
-        layers.apend(nn.RelU())
+        layers.append(nn.ReLU())
         if use_dropout:
            layers.append(nn.Dropout2d(dropout_p))
         layers.append(nn.MaxPool2d(2))
@@ -101,12 +104,12 @@ class CNN(nn.Module):
     
     def forward(self, x):
         x = self.features(x)
-        x = self.classifier(x)
+        x = self.classify(x)
         return x
 
 
-count_params(model):
-return sum(p.numel() for p in model.parameters() if p.requires_grad)
+def count_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def train_batch(x, y, model, opt, loss_fn):
@@ -129,9 +132,10 @@ def accuracy(x, y, model):
 
     return s.cpu().numpy()
 
-def do_experiment(model, train_dl, test_dl):
+def do_experiment(model, train_dl, test_dl, table, name):
     #model = model.to(device)
     #separate test and train functions so it doesn't train every time? 
+    
     loss_func = nn.CrossEntropyLoss()
     opt = Adam(model.parameters(), lr=1e-3)
 
@@ -158,18 +162,19 @@ def do_experiment(model, train_dl, test_dl):
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
-    print(f"Training time: {elapsed_time:.6f} seconds")
+    print(f"Training time for {name}: {elapsed_time:.6f} seconds")
     
     epoch_accuracies = []
     for batch in test_dl:
         x, y = batch
         batch_acc = accuracy(x, y, model)
         epoch_accuracies.append(batch_acc)
-    print(f"Test accuracy: {np.mean(epoch_accuracies)}")
+    print(f"Test accuracy for {name}: {np.mean(epoch_accuracies)}")
+    table.add_row([name, f"{elapsed_time:.6f}", np.mean(epoch_accuracies)])
 
     
     #plt.show()
-    return n_epochs, losses, accuracies
+    return n_epochs, losses, accuracies, table
 
 def visualize(n_epochs, losses, accuracies, i, name):
     plt.figure(figsize=(13,3))
@@ -180,10 +185,6 @@ def visualize(n_epochs, losses, accuracies, i, name):
     plt.title(f'Training Accuracy value over epochs - {name}') #specify version
     plt.plot(np.arange(n_epochs) + 1, accuracies)
     plt.savefig(f"plot_{i}.png")
-
-
-def count_parameters(model):
-    return model.parameters()
 
 def main():
     i = 0 
@@ -200,14 +201,16 @@ def main():
     # nn.ReLU(),
     # nn.Linear(200, 10)
     # ).to(device)
+    table = PrettyTable(["Experiment Name", "Training Time (seconds)", "Test Accuracy"]) 
+    
     model = CNN().to(device)
-    n_epochs, losses, accuracies = do_experiment(model, train_dl, test_dl)
+    n_epochs, losses, accuracies, curr_table = do_experiment(model, train_dl, test_dl, table, name="CNN")
     visualize(n_epochs, losses, accuracies, i, name="CNN")
     i += 1
 
    #call function 
     mlp = MLP().to(device)
-    n_epochs, losses, accuracies = do_experiment(mlp, train_dl, test_dl)
+    n_epochs, losses, accuracies, curr_table = do_experiment(mlp, train_dl, test_dl, table, name="MLP")
     visualize(n_epochs, losses, accuracies, i, name="MLP")
     i += 1
     
@@ -215,7 +218,7 @@ def main():
     kernel_size= [2, 3, 5, 7, 9]
     for k in kernel_size:
         model = CNN(kernel_size=k).to(device)
-        n_epochs, losses, accuracies = do_experiment(model, train_dl, test_dl)
+        n_epochs, losses, accuracies, curr_table = do_experiment(model, train_dl, test_dl, table, name=(f"kernel size: {k}"))
         visualize(n_epochs, losses, accuracies, i, name=(f"kernel size: {k}"))
         i += 1
 
@@ -224,10 +227,11 @@ def main():
     filters = [5, 10, 15, 20, 25]
     for f in filters:
         model = CNN(filters=f).to(device)
-        n_epochs, losses, accuracies = do_experiment(model, train_dl, test_dl)
+        n_epochs, losses, accuracies, curr_table = do_experiment(model, train_dl, test_dl, table, name=(f"filter size: {f}"))
         visualize(n_epochs, losses, accuracies, i, name=(f"filter size: {f}"))
         i += 1
-
+    
+    print(curr_table)
     #study 4
 
 
