@@ -62,21 +62,38 @@ class MLP(nn.Module):
         return x
 
 class CNN(nn.Module):
-    def __init__(self, filters=64, kernel_size=3):
-        super().__init__()
+    def __init__(self, 
+                 filters=64, 
+                 kernel_size=3, 
+                 use_batchnorm=False, 
+                 use_dropout=False, 
+                 dropout_p=0.3):
+       super().__init__()
 
-        self.features = nn.Sequential(
-            nn.Conv2d(1, filters, kernel_size),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(filters, filters, kernel_size),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-        ) #.to(device)??
+        layers=[]
+                    
+        #Cov 1
+        layers.append(nn.Conv2d(1,filters,kernel_size))
+        if use_batchnorm:
+           layers.append(nn.BatchNorm2d(filters))
+        layers.apend(nn.RelU())
+        if use_dropout:
+           layers.append(nn.Dropout2d(dropout_p))
+        layers.append(nn.MaxPool2d(2))
+
+        #Conv 2
+        layers.append(nn.Conv2d(filters,filters,kernel_size))
+        if use_batchnorm:
+           layers.append(nn.BatchNorm2d(filters))
+        layers.apend(nn.RelU())
+        if use_dropout:
+           layers.append(nn.Dropout2d(dropout_p))
+        layers.append(nn.MaxPool2d(2))
+                      
+        self.features = nn.Sequential(*layers) 
 
         self.classify = nn.Sequential(
             nn.Flatten(),
-            #nn.Linear(3200, 200),
             nn.LazyLinear(200), #used chat to find lazylinear fix
             nn.ReLU(),
             nn.Linear(200, 10)
@@ -84,8 +101,13 @@ class CNN(nn.Module):
     
     def forward(self, x):
         x = self.features(x)
-        x = self.classify(x)
+        x = self.classifier(x)
         return x
+
+
+count_params(model):
+return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def train_batch(x, y, model, opt, loss_fn):
     model.train()
