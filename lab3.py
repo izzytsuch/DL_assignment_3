@@ -120,11 +120,11 @@ def train_epoch(x, y, model, opt, loss_fn):
     correct=0
 
     for x,y in dataloader:
-       optimizer.zero_grad()
+       opt.zero_grad()
        outputs=model(x)
        loss=loss_fn(outputs,y)
        loss.backward()
-       optimizer.step()
+       opt.step()
 
        loss+=loss.item()*len(y)
        preds=outputs.argmx(dim=1)
@@ -151,7 +151,7 @@ def accuracy(model, dataloader):
 
 
 
-def do_experiment(model, train_dl, test_dl):
+def do_experiment(model, train_dl, test_dl, table, name):
     model.to(device)
     #separate test and train functions so it doesn't train every time? 
     
@@ -160,18 +160,29 @@ def do_experiment(model, train_dl, test_dl):
 
     loss=[]
     acc=[]
-
-    for epoch in range (epochs):
-       train_loss, train_acc=train_epoch(model, train_d1, train_d1, loss_fn)
+    losses, accuracies, n_epochs = [], [], 5
+    start_time = time.perf_counter()
+    
+    for epoch in range (n_epochs):
+       train_loss, train_acc=train_epoch(model, train_dl, train_dl, loss_func)
        losses.append(train_loss)
        acc.append(train_acc)
-       print(f"Epoch {epoch+1}/{epochs} | Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f}")
+       print(f"Epoch {epoch+1}/{n_epochs} | Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f}")
 
-    final_time=time.perf_counter()
-    train_time=final_time-start_time
-    test_acc=evalute(mode, test_d1)
+    final_time = time.perf_counter()
+    train_time = final_time-start_time
+    print(f"Training time for {name}: {train_time:.6f} seconds")
 
-    return (loss, acc, test_acc, train_time)
+    epoch_accuracies = []
+    for batch in test_dl:
+        x, y = batch
+        batch_acc = accuracy(x, y, model)
+        epoch_accuracies.append(batch_acc)
+    print(f"Test accuracy for {name}: {np.mean(epoch_accuracies)}")
+
+    table.add_row([name, f"{train_time:.6f}", np.mean(epoch_accuracies)])
+
+    return (loss, acc, epoch_accuracies, table)
 
 
 def visualize(n_epochs, losses, accuracies, i, name):
