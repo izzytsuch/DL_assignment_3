@@ -9,6 +9,18 @@ from torch.optim import Adam
 import numpy as np
 import matplotlib.pyplot as plt
 
+#next steps:
+#1. implement model_parameters function specified in lab
+#2. run BN and droupout experiment 
+#3. split up do_experiment function into separate for training 
+#.  and/or testing, and visualization 
+#4. clean up visualization: label graphs based on study
+#   and take into account time
+
+#notes:
+#i've used a lot of the code that we were given in lectures, but
+#it's a little messy so sorry if it's confusing!
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 fmnist_train = datasets.FashionMNIST('~/data/FMNIST', download=True, train=True)
 fmnist_test = datasets.FashionMNIST('~/data/FMNIST', download=True, train=False)
@@ -35,34 +47,37 @@ class MLP(nn.Module):
     def __init__(self):
         super().__init__()
         self.input_to_hidden_layer = nn.Linear(28 * 28, 1000)
-        #self.batch_norm = nn.BatchNorm1d(1000)
+        self.batch_norm = nn.BatchNorm1d(1000)
         self.hidden_layer_activation = nn.ReLU()
-        #self.dropout = nn.Dropout(0.25)
+        self.dropout = nn.Dropout(0.25)
         self.hidden_to_output_layer = nn.Linear(1000, 10)
     def forward(self, x):
+        #must flatten layers for dataset to match 
+        x = torch.flatten(x,1) #had to use chatgpt to find this fix 
         x = self.input_to_hidden_layer(x)
-        #x = self.batch_norm(x)
+        x = self.batch_norm(x)
         x = self.hidden_layer_activation(x)
-        #x = self.dropout(x)
+        x = self.dropout(x)
         x = self.hidden_to_output_layer(x)
         return x
 
 class CNN(nn.Module):
-    def __init__(self):
+    def __init__(self, filters=64, kernel_size=3):
         super().__init__()
 
         self.features = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=3),
+            nn.Conv2d(1, filters, kernel_size),
             nn.ReLU(),
             nn.MaxPool2d(2),
-            nn.Conv2d(64, 128, kernel_size=3),
+            nn.Conv2d(filters, filters, kernel_size),
             nn.ReLU(),
             nn.MaxPool2d(2),
         ) #.to(device)??
 
         self.classify = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(3200, 200),
+            #nn.Linear(3200, 200),
+            nn.LazyLinear(200), #used chat to find lazylinear fix
             nn.ReLU(),
             nn.Linear(200, 10)
         )
@@ -70,6 +85,7 @@ class CNN(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.classify(x)
+        return x
 
 def train_batch(x, y, model, opt, loss_fn):
     model.train()
@@ -93,7 +109,7 @@ def accuracy(x, y, model):
 
 def do_experiment(model, train_dl, test_dl):
     #model = model.to(device)
-
+    #separate test and train functions so it doesn't train every time? 
     loss_func = nn.CrossEntropyLoss()
     opt = Adam(model.parameters(), lr=1e-3)
 
@@ -127,10 +143,10 @@ def do_experiment(model, train_dl, test_dl):
 
     plt.figure(figsize=(13,3))
     plt.subplot(121)
-    plt.title('Training Loss value over epochs (CNN version)')
+    plt.title('Training Loss value over epochs')
     plt.plot(np.arange(n_epochs) + 1, losses)
     plt.subplot(122)
-    plt.title('Training Accuracy value over epochs (CNN version)')
+    plt.title('Training Accuracy value over epochs') #specify version
     plt.plot(np.arange(n_epochs) + 1, accuracies)
     plt.show()
 
@@ -138,30 +154,39 @@ def count_parameters():
     return 2
 
 def main():
-    model = nn.Sequential(
-    nn.Conv2d(1, 64, kernel_size=3),
-    nn.ReLU(),
-    nn.MaxPool2d(2),
-    nn.Conv2d(64, 128, kernel_size=3),
-    nn.ReLU(),
-    nn.MaxPool2d(2),
-    nn.Flatten(),
-    nn.Linear(3200, 200),
-    nn.ReLU(),
-    nn.Linear(200, 10)
-    ).to(device)
-
-    do_experiment(model, train_dl, test_dl)
-    
-    #losses, train_acc, test_acc, total_time = do_experiment(
-        #model, train_dl, test_dl
-    #)
-
-    #print("Final Test Accuracy:", test_acc[-1])
-    #print("Training Time:", total_time)
     #study 1
+    # model = nn.Sequential(
+    # nn.Conv2d(1, 64, kernel_size=3),
+    # nn.ReLU(),
+    # nn.MaxPool2d(2),
+    # nn.Conv2d(64, 128, kernel_size=3),
+    # nn.ReLU(),
+    # nn.MaxPool2d(2),
+    # nn.Flatten(),
+    # nn.Linear(3200, 200),
+    # nn.ReLU(),
+    # nn.Linear(200, 10)
+    # ).to(device)
+    model = CNN().to(device)
+    do_experiment(model, train_dl, test_dl)
+
+   #call function 
+    mlp = MLP().to(device)
+    do_experiment(mlp, train_dl, test_dl)
+    
     #study 2
+    kernel_size= [2, 3, 5, 7, 9]
+    for k in kernel_size:
+        model = CNN(kernel_size=k).to(device)
+        do_experiment(model, train_dl, test_dl)
+
+
     #study 3
+    filters = [5, 10, 15, 20, 25]
+    for f in filters:
+        model = CNN(filters=f).to(device)
+        do_experiment(model, train_dl, test_dl)
+
     #study 4
 
 
