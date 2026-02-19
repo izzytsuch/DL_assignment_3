@@ -112,69 +112,67 @@ def count_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def train_batch(x, y, model, opt, loss_fn):
+
+def train_epoch(x, y, model, opt, loss_fn):
     model.train()
+    loss==
+    samples=0
+    correct=0
 
-    opt.zero_grad()                    # Flush memory
-    batch_loss = loss_fn(model(x), y)  # Compute loss
-    batch_loss.backward()              # Compute gradients
-    opt.step()                         # Make a GD step
+    for x,y in dataloader:
+       optimizer.zero_grad()
+       outputs=model(x)
+       loss=loss_fn(outputs,y)
+       loss.backward()
+       optimizer.step()
 
-    return batch_loss.detach().cpu().numpy()
+       loss+=loss.item()*len(y)
+       preds=outputs.argmx(dim=1)
+       correct+=(preds==y).sum().item()
+       samples+=len(y)                       
+
+    return loss/samples, correct/samples
+
+
 
 @torch.no_grad()
-def accuracy(x, y, model):
+def accuracy(model, dataloader):
     model.eval()
+    correct=0
+    samples=0
 
-    prediction = model(x)
-    argmaxes = prediction.argmax(dim=1)
-    s = torch.sum((argmaxes == y).float())/len(y)
+    for x,y in dataloader:
+       loss+=loss.item()*len(y)
+       preds=outputs.argmx(dim=1)
+       correct+=(preds==y).sum().item()
+       samples+=len(y)        
 
-    return s.cpu().numpy()
+    return loss/samples, correct/samples
 
-def do_experiment(model, train_dl, test_dl, table, name):
-    #model = model.to(device)
+
+
+def do_experiment(model, train_dl, test_dl):
+    model.to(device)
     #separate test and train functions so it doesn't train every time? 
     
     loss_func = nn.CrossEntropyLoss()
     opt = Adam(model.parameters(), lr=1e-3)
 
-    losses, accuracies, n_epochs = [], [], 5
-    start_time = time.perf_counter()
-    for epoch in range(n_epochs):
-        print(f"Running epoch {epoch + 1} of {n_epochs}")
+    loss=[]
+    acc=[]
 
-        epoch_losses, epoch_accuracies = [], []
-        for batch in train_dl:
-            x, y = batch
-            batch_loss = train_batch(x, y, model, opt, loss_func)
-            epoch_losses.append(batch_loss)
-        epoch_loss = np.mean(epoch_losses)
+    for epoch in range (epochs):
+       train_loss, train_acc=train_epoch(model, train_d1, train_d1, loss_fn)
+       losses.append(train_loss)
+       acc.append(train_acc)
+       print(f"Epoch {epoch+1}/{epochs} | Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f}")
 
-        for batch in train_dl:
-            x, y = batch
-            batch_acc = accuracy(x, y, model)
-            epoch_accuracies.append(batch_acc)
-        epoch_accuracy = np.mean(epoch_accuracies)
+    final_time=time.perf_counter()
+    train_time=final_time-start_time
+    test_acc=evalute(mode, test_d1)
 
-        losses.append(epoch_loss)
-        accuracies.append(epoch_accuracy)
+    return (loss, acc, test_acc, train_time)
 
-    end_time = time.perf_counter()
-    elapsed_time = end_time - start_time
-    print(f"Training time for {name}: {elapsed_time:.6f} seconds")
-    
-    epoch_accuracies = []
-    for batch in test_dl:
-        x, y = batch
-        batch_acc = accuracy(x, y, model)
-        epoch_accuracies.append(batch_acc)
-    print(f"Test accuracy for {name}: {np.mean(epoch_accuracies)}")
-    table.add_row([name, f"{elapsed_time:.6f}", np.mean(epoch_accuracies)])
-
-    
-    #plt.show()
-    return n_epochs, losses, accuracies, table
 
 def visualize(n_epochs, losses, accuracies, i, name):
     plt.figure(figsize=(13,3))
