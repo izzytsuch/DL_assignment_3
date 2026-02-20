@@ -197,38 +197,28 @@ def visualize(n_epochs, losses, accuracies, i, name):
 
 def main():
     i = 0 
+    table=PrettyTable(["Experiment Name", "Training Time (seconds)", "Test Accuracy", "Number of Parameters"])
+
     #study 1
-    # model = nn.Sequential(
-    # nn.Conv2d(1, 64, kernel_size=3),
-    # nn.ReLU(),
-    # nn.MaxPool2d(2),
-    # nn.Conv2d(64, 128, kernel_size=3),
-    # nn.ReLU(),
-    # nn.MaxPool2d(2),
-    # nn.Flatten(),
-    # nn.Linear(3200, 200),
-    # nn.ReLU(),
-    # nn.Linear(200, 10)
-    # ).to(device)
-    table = PrettyTable(["Experiment Name", "Training Time (seconds)", "Test Accuracy"]) 
-    
-    model = CNN().to(device)
-    n_epochs, losses, accuracies, curr_table = do_experiment(model, train_dl, test_dl, table, name="CNN")
-    visualize(n_epochs, losses, accuracies, i, name="CNN")
+    #CNN compare
+    model=CNN.to(device)
+    losses, accuracies, table=do_experiment(model, train_dl, test_dl, table, name="CNN")
+    visualize(5, losses, accuracies, i, name="CNN")
+    i+=1
+   
+    #MLP compare
+    mlp = MLP().to(device)
+    losses, accuracies, table = do_experiment(mlp, train_dl, test_dl, table, name="MLP")
+    visualize(5, losses, accuracies, i, name="MLP")
     i += 1
 
-   #call function 
-    mlp = MLP().to(device)
-    n_epochs, losses, accuracies, curr_table = do_experiment(mlp, train_dl, test_dl, table, name="MLP")
-    visualize(n_epochs, losses, accuracies, i, name="MLP")
-    i += 1
-    
+   
     #study 2
     kernel_size= [2, 3, 5, 7, 9]
     for k in kernel_size:
         model = CNN(kernel_size=k).to(device)
-        n_epochs, losses, accuracies, curr_table = do_experiment(model, train_dl, test_dl, table, name=(f"kernel size: {k}"))
-        visualize(n_epochs, losses, accuracies, i, name=(f"kernel size: {k}"))
+        losses, accuracies, table = do_experiment(model, train_dl, test_dl, table, name=(f"kernel size: {k}"))
+        visualize(5, losses, accuracies, i, name=(f"kernel size: {k}"))
         i += 1
 
 
@@ -236,12 +226,25 @@ def main():
     filters = [5, 10, 15, 20, 25]
     for f in filters:
         model = CNN(filters=f).to(device)
-        n_epochs, losses, accuracies, curr_table = do_experiment(model, train_dl, test_dl, table, name=(f"filter size: {f}"))
-        visualize(n_epochs, losses, accuracies, i, name=(f"filter size: {f}"))
+        losses, accuracies, table = do_experiment(model, train_dl, test_dl, table, name=(f"filter size: {f}"))
+        visualize(5, losses, accuracies, i, name=(f"filter size: {f}"))
         i += 1
+       
     
-    print(curr_table)
     #study 4
+    #Batch Norm compare
+    model_bn=CNN(use_batchnorm=True, use_dropout=False).to(device)
+    losses, accuracies, table=do_experiment(model_bn, train_dl, test_dl, table, name="CNN with Batch Normalization")
+    visualize(5, losses, accuracies, i, name="CNN with Batch Normalization")
+    i+=5
+
+    #Dropout compare
+    model_dropout=CNN(use_batchnorm=False, use_dropout=True).to(device)
+    losses, accuracies, table=do_experiment(model_dropout, train_dl, test_dl, table, name="CNN with Dropout")
+    visualize(5, losses, accuracies, i, name="CNN with Dropout")
+    i+=5
+    
+    
 
 
 if __name__ == "__main__":
