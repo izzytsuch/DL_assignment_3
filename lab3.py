@@ -3,7 +3,6 @@ import torch.nn as nn
 from torchvision import datasets
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import SGD
-import numpy as np
 from torchsummary import summary
 from torch.optim import Adam
 import numpy as np
@@ -113,7 +112,7 @@ def count_params(model):
 
 
 
-def train_epoch(x, y, model, opt, loss_fn):
+def train_epoch(model, dataloader, opt, loss_fn):
     model.train()
     total_loss=0
     samples=0
@@ -131,7 +130,7 @@ def train_epoch(x, y, model, opt, loss_fn):
        correct+=(preds==y).sum().item()
        samples+=len(y)                       
 
-    return loss/samples, correct/samples
+    return total_loss/samples, correct/samples
 
 
 
@@ -142,10 +141,10 @@ def accuracy(model, dataloader):
     samples=0
 
     for x,y in dataloader:
-       total_loss+=loss.item()*len(y)
+       outputs=model(x)
        preds=outputs.argmax(dim=1)
        correct+=(preds==y).sum().item()
-       samples+=len(y)        
+       samples+=len(y)
 
     return correct/samples
 
@@ -158,27 +157,24 @@ def do_experiment(model, train_dl, test_dl, table, name):
     loss_func = nn.CrossEntropyLoss()
     opt = Adam(model.parameters(), lr=1e-3)
 
-    loss=[]
-    acc=[]
-    losses, accuracies, n_epochs = [], [], 5
+    losses=[]
+    accuracies=[]
+    n_epochs = 5
     start_time = time.perf_counter()
     
     for epoch in range (n_epochs):
-       train_loss, train_acc=train_epoch(model, train_dl, train_dl, loss_func)
+       train_loss, train_acc=train_epoch(model, train_dl, opt, loss_func)
        losses.append(train_loss)
-       acc.append(train_acc)
+       accuracies.append(train_acc)
        print(f"Epoch {epoch+1}/{n_epochs} | Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f}")
 
-    final_time = time.perf_counter()
-    train_time = final_time-start_time
+    train_time = time.perf_counter()-start_time
+   
     print(f"Training time for {name}: {train_time:.6f} seconds")
 
-    epoch_accuracies = []
-    for batch in test_dl:
-        x, y = batch
-        batch_acc = accuracy(x, y, model)
-        epoch_accuracies.append(batch_acc)
-    print(f"Test accuracy for {name}: {np.mean(epoch_accuracies)}")
+
+    test_acc = accuracy(model, test_dl)
+    print(f"Test accuracy for {name}: {test_acc:.4f}")
 
     table.add_row([name, f"{train_time:.6f}", f"{np.mean(epoch_accuracies):.4f}", count_params(model)])
 
@@ -236,13 +232,13 @@ def main():
     model_bn=CNN(use_batchnorm=True, use_dropout=False).to(device)
     losses, accuracies, table=do_experiment(model_bn, train_dl, test_dl, table, name="CNN with Batch Normalization")
     visualize(5, losses, accuracies, i, name="CNN with Batch Normalization")
-    i+=5
+    i+=1
 
     #Dropout compare
     model_dropout=CNN(use_batchnorm=False, use_dropout=True).to(device)
     losses, accuracies, table=do_experiment(model_dropout, train_dl, test_dl, table, name="CNN with Dropout")
     visualize(5, losses, accuracies, i, name="CNN with Dropout")
-    i+=5
+    i+=1
     
     
 
