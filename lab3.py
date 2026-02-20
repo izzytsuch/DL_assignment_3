@@ -195,12 +195,20 @@ def main():
     i = 0 
     table=PrettyTable(["Experiment Name", "Training Time (seconds)", "Test Accuracy", "Number of Parameters"])
 
+    best_test_acc=0
+    best_filters=None
+    best_kernel=None
+
     #study 1
     #CNN compare
     model=CNN().to(device)
     losses, accuracies, table=do_experiment(model, train_dl, test_dl, table, name="CNN")
     visualize(5, losses, accuracies, i, name="CNN")
     i+=1
+    if tets_acc>best_test_acc:
+       best_test_acc=test_acc
+       best_filters=64
+       best_kernel=3
    
     #MLP compare
     mlp = MLP().to(device)
@@ -216,6 +224,10 @@ def main():
         losses, accuracies, table = do_experiment(model, train_dl, test_dl, table, name=(f"kernel size: {k}"))
         visualize(5, losses, accuracies, i, name=(f"kernel size: {k}"))
         i += 1
+        if tets_acc>best_test_acc:
+        best_test_acc=test_acc
+        best_filters=64
+        best_kernel=k
 
 
     #study 3
@@ -225,19 +237,25 @@ def main():
         losses, accuracies, table = do_experiment(model, train_dl, test_dl, table, name=(f"filter size: {f}"))
         visualize(5, losses, accuracies, i, name=(f"filter size: {f}"))
         i += 1
+        if tets_acc>best_test_acc:
+        best_test_acc=test_acc
+        best_filters=f
+        best_kernel=3
        
-    
+
+    print(f"\nBest architechture selected: Filters={best_filters}, Kernel={best_kernel")
+   
     #study 4
     #Batch Norm compare
-    model_bn=CNN(use_batchnorm=True, use_dropout=False).to(device)
+    model_bn=CNN(filters=best_filters, kernel_size=best_kernel, use_batchnorm=True, use_dropout=False).to(device)
     losses, accuracies, table=do_experiment(model_bn, train_dl, test_dl, table, name="CNN with Batch Normalization")
-    visualize(5, losses, accuracies, i, name="CNN with Batch Normalization")
+    visualize(5, losses, accuracies, i, name="Chosen CNN with Batch Normalization")
     i+=1
 
     #Dropout compare
-    model_dropout=CNN(use_batchnorm=False, use_dropout=True).to(device)
+    model_dropout=CNN(filters=best_filters, kernel_size=best_kernel, use_batchnorm=False, use_dropout=True).to(device)
     losses, accuracies, table=do_experiment(model_dropout, train_dl, test_dl, table, name="CNN with Dropout")
-    visualize(5, losses, accuracies, i, name="CNN with Dropout")
+    visualize(5, losses, accuracies, i, name="Chosen CNN with Dropout")
     i+=1
     
     
