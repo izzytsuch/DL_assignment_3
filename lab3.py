@@ -12,16 +12,6 @@ from prettytable import PrettyTable
 #used https://www.geeksforgeeks.org/python/how-to-make-a-table-in-python/ to find prettytable
 
 
-#next steps:
-#1. implement model_parameters function specified in lab
-#2. run BN and droupout experiment 
-#3. split up do_experiment function into separate for training 
-#.  and testing?
-#4. clean up visualization
-
-#notes:
-#i've used a lot of the code that we were given in lectures, but
-#it's a little messy so sorry if it's confusing!
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 fmnist_train = datasets.FashionMNIST('~/data/FMNIST', download=True, train=True)
