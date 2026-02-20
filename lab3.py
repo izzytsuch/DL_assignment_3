@@ -115,7 +115,7 @@ def count_params(model):
 
 def train_epoch(x, y, model, opt, loss_fn):
     model.train()
-    loss==
+    total_loss=0
     samples=0
     correct=0
 
@@ -126,8 +126,8 @@ def train_epoch(x, y, model, opt, loss_fn):
        loss.backward()
        opt.step()
 
-       loss+=loss.item()*len(y)
-       preds=outputs.argmx(dim=1)
+       total_loss+=loss.item()*len(y)
+       preds=outputs.argmax(dim=1)
        correct+=(preds==y).sum().item()
        samples+=len(y)                       
 
@@ -142,12 +142,12 @@ def accuracy(model, dataloader):
     samples=0
 
     for x,y in dataloader:
-       loss+=loss.item()*len(y)
-       preds=outputs.argmx(dim=1)
+       total_loss+=loss.item()*len(y)
+       preds=outputs.argmax(dim=1)
        correct+=(preds==y).sum().item()
        samples+=len(y)        
 
-    return loss/samples, correct/samples
+    return correct/samples
 
 
 
@@ -180,9 +180,9 @@ def do_experiment(model, train_dl, test_dl, table, name):
         epoch_accuracies.append(batch_acc)
     print(f"Test accuracy for {name}: {np.mean(epoch_accuracies)}")
 
-    table.add_row([name, f"{train_time:.6f}", np.mean(epoch_accuracies)])
+    table.add_row([name, f"{train_time:.6f}", f"{test_acc:.4f}", count_params(model)])
 
-    return (loss, acc, epoch_accuracies, table)
+    return (losses, accuracies, table)
 
 
 def visualize(n_epochs, losses, accuracies, i, name):
