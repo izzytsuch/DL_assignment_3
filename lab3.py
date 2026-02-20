@@ -42,7 +42,7 @@ class FMNISTDataset(Dataset):
 train_dataset = FMNISTDataset(x_train, y_train)
 train_dl = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_dataset = FMNISTDataset(x_test, y_test)
-test_dl = DataLoader(test_dataset, batch_size=32, shuffle=True)
+test_dl = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 
 class MLP(nn.Module):
@@ -176,9 +176,9 @@ def do_experiment(model, train_dl, test_dl, table, name):
     test_acc = accuracy(model, test_dl)
     print(f"Test accuracy for {name}: {test_acc:.4f}")
 
-    table.add_row([name, f"{train_time:.6f}", f"{np.mean(epoch_accuracies):.4f}", count_params(model)])
+    table.add_row([name, f"{train_time:.6f}", f"{test_acc:.4f}", count_params(model)])
 
-    return (losses, accuracies, table)
+    return (losses, accuracies, table, test_acc)
 
 
 def visualize(n_epochs, losses, accuracies, i, name):
@@ -202,17 +202,17 @@ def main():
     #study 1
     #CNN compare
     model=CNN().to(device)
-    losses, accuracies, table=do_experiment(model, train_dl, test_dl, table, name="CNN")
+    losses, accuracies, table, test_acc=do_experiment(model, train_dl, test_dl, table, name="CNN")
     visualize(5, losses, accuracies, i, name="CNN")
     i+=1
-    if tets_acc>best_test_acc:
+    if test_acc>best_test_acc:
        best_test_acc=test_acc
        best_filters=64
        best_kernel=3
    
     #MLP compare
     mlp = MLP().to(device)
-    losses, accuracies, table = do_experiment(mlp, train_dl, test_dl, table, name="MLP")
+    losses, accuracies, table, test_acc = do_experiment(mlp, train_dl, test_dl, table, name="MLP")
     visualize(5, losses, accuracies, i, name="MLP")
     i += 1
 
@@ -221,40 +221,40 @@ def main():
     kernel_size= [2, 3, 5, 7, 9]
     for k in kernel_size:
         model = CNN(kernel_size=k).to(device)
-        losses, accuracies, table = do_experiment(model, train_dl, test_dl, table, name=(f"kernel size: {k}"))
+        losses, accuracies, table, test_acc = do_experiment(model, train_dl, test_dl, table, name=(f"kernel size: {k}"))
         visualize(5, losses, accuracies, i, name=(f"kernel size: {k}"))
         i += 1
-        if tets_acc>best_test_acc:
-        best_test_acc=test_acc
-        best_filters=64
-        best_kernel=k
+        if test_acc>best_test_acc:
+           best_test_acc=test_acc
+           best_filters=64
+           best_kernel=k
 
 
     #study 3
     filters = [5, 10, 15, 20, 25]
     for f in filters:
         model = CNN(filters=f).to(device)
-        losses, accuracies, table = do_experiment(model, train_dl, test_dl, table, name=(f"filter size: {f}"))
+        losses, accuracies, table, test_acc = do_experiment(model, train_dl, test_dl, table, name=(f"filter size: {f}"))
         visualize(5, losses, accuracies, i, name=(f"filter size: {f}"))
         i += 1
-        if tets_acc>best_test_acc:
-        best_test_acc=test_acc
-        best_filters=f
-        best_kernel=3
+        if test_acc>best_test_acc:
+           best_test_acc=test_acc
+           best_filters=f
+           best_kernel=3
        
 
-    print(f"\nBest architechture selected: Filters={best_filters}, Kernel={best_kernel")
+    print(f"\nBest architecture selected: Filters={best_filters}, Kernel={best_kernel}")
    
     #study 4
     #Batch Norm compare
     model_bn=CNN(filters=best_filters, kernel_size=best_kernel, use_batchnorm=True, use_dropout=False).to(device)
-    losses, accuracies, table=do_experiment(model_bn, train_dl, test_dl, table, name="CNN with Batch Normalization")
+    losses, accuracies, table, test_acc=do_experiment(model_bn, train_dl, test_dl, table, name="Chosen CNN with Batch Normalization")
     visualize(5, losses, accuracies, i, name="Chosen CNN with Batch Normalization")
     i+=1
 
     #Dropout compare
     model_dropout=CNN(filters=best_filters, kernel_size=best_kernel, use_batchnorm=False, use_dropout=True).to(device)
-    losses, accuracies, table=do_experiment(model_dropout, train_dl, test_dl, table, name="CNN with Dropout")
+    losses, accuracies, table, test_acc=do_experiment(model_dropout, train_dl, test_dl, table, name="Chosen CNN with Dropout")
     visualize(5, losses, accuracies, i, name="Chosen CNN with Dropout")
     i+=1
     
