@@ -1,3 +1,17 @@
+"""
+This project is for CSCI 3485, Deep learning, project #3. 
+This code was written by Izzy Tsuchitori and Riley Nelson
+February 20th, 2026
+
+This project compares MLPs and CNNs on the FashionMNIST datatset, as well as:
+-The effect of Kernel size on CNN performance
+-The effect of #of Filters on CNN performance
+-The impact of Batch Normalization vs Dropout
+
+For each experiement, a plot is created
+
+"""
+
 import torch
 import torch.nn as nn
 from torchvision import datasets
@@ -12,7 +26,6 @@ from prettytable import PrettyTable
 #used https://www.geeksforgeeks.org/python/how-to-make-a-table-in-python/ to find prettytable
 
 
-
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 fmnist_train = datasets.FashionMNIST('~/data/FMNIST', download=True, train=True)
 fmnist_test = datasets.FashionMNIST('~/data/FMNIST', download=True, train=False)
@@ -20,13 +33,24 @@ x_train, y_train = fmnist_train.data, fmnist_train.targets
 x_test, y_test = fmnist_test.data, fmnist_test.targets
 
 class FMNISTDataset(Dataset):
+   """
+   Convert raw tensors into correct format for experimentation"
+   """
    def __init__(self, x, y):
+      """
+      inputs:
+      self
+      x- image tensor shape of (N, 28, 28)
+      y- label tensor or shape (N,)
+      """
        x = x.view(-1, 1, 28, 28)
        x = x.float()/255
        self.x, self.y = x, y
    def __getitem__(self, ix):
        return self.x[ix].to(device), self.y[ix].to(device)
+      """ returns a sample from the dataset """
    def __len__(self):
+      """ returns total #of samples """
        return len(self.x)
 
 train_dataset = FMNISTDataset(x_train, y_train)
@@ -36,6 +60,10 @@ test_dl = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 
 class MLP(nn.Module):
+   """
+   MLP model format for testing
+   Includes Batch Normalization and Dropout
+   """
     def __init__(self):
         super().__init__()
         self.input_to_hidden_layer = nn.Linear(28 * 28, 1000)
@@ -44,6 +72,7 @@ class MLP(nn.Module):
         self.dropout = nn.Dropout(0.25)
         self.hidden_to_output_layer = nn.Linear(1000, 10)
     def forward(self, x):
+       """ Forward pass of the MLP"""
         #must flatten layers for dataset to match 
         x = torch.flatten(x,1) #had to use chatgpt to find this fix 
         x = self.input_to_hidden_layer(x)
@@ -54,6 +83,13 @@ class MLP(nn.Module):
         return x
 
 class CNN(nn.Module):
+   """
+   CNN model format for testing. Allows for configuring:
+   -Filters
+   -Kernel size
+   -Batch Normalization
+   -Dropout
+   """
     def __init__(self, 
                  filters=64, 
                  kernel_size=3, 
@@ -92,6 +128,7 @@ class CNN(nn.Module):
         )
     
     def forward(self, x):
+       """ forward pass of the CNN """
         x = self.features(x)
         x = self.classify(x)
         return x
@@ -103,6 +140,10 @@ def count_params(model):
 
 
 def train_epoch(model, dataloader, opt, loss_fn):
+    """ 
+    trains the model for one epoch.
+    returns a tuple of the average loss, and the accruacy
+    """
     model.train()
     total_loss=0
     samples=0
@@ -126,6 +167,7 @@ def train_epoch(model, dataloader, opt, loss_fn):
 
 @torch.no_grad()
 def accuracy(model, dataloader):
+   """ checks arruracy of the model """
     model.eval()
     correct=0
     samples=0
@@ -141,6 +183,12 @@ def accuracy(model, dataloader):
 
 
 def do_experiment(model, train_dl, test_dl, table, name):
+    """
+    This is where each experiment is actually run.
+    Each experiment is called using do_experiment, which then calls on
+    the proper format depending on the model. This then sends the proper data to cuda/cpu
+    and then runs and tests each experiment, and then logs accuracy and time into a table.
+    """
     model.to(device)
     #separate test and train functions so it doesn't train every time? 
     
@@ -189,7 +237,8 @@ def main():
     best_filters=None
     best_kernel=None
 
-    #study 1
+    #study 1, compare CNN to MLP
+
     #CNN compare
     model=CNN().to(device)
     losses, accuracies, table, test_acc=do_experiment(model, train_dl, test_dl, table, name="CNN")
@@ -207,7 +256,7 @@ def main():
     i += 1
 
    
-    #study 2
+    #study 2, vary kernel size
     kernel_size= [2, 3, 5, 7, 9]
     for k in kernel_size:
         model = CNN(kernel_size=k).to(device)
@@ -220,7 +269,7 @@ def main():
            best_kernel=k
 
 
-    #study 3
+    #study 3, vary #of filters
     filters = [5, 10, 15, 20, 25]
     for f in filters:
         model = CNN(filters=f).to(device)
@@ -232,10 +281,11 @@ def main():
            best_filters=f
            best_kernel=3
        
-
+      
     print(f"\nBest architecture selected: Filters={best_filters}, Kernel={best_kernel}")
    
-    #study 4
+    #study 4, test with Batch norm vs Dropout
+
     #Batch Norm compare
     model_bn=CNN(filters=best_filters, kernel_size=best_kernel, use_batchnorm=True, use_dropout=False).to(device)
     losses, accuracies, table, test_acc=do_experiment(model_bn, train_dl, test_dl, table, name="Chosen CNN with Batch Normalization")
