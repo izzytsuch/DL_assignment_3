@@ -180,7 +180,7 @@ def do_experiment(model, train_dl, test_dl, table, name):
         epoch_accuracies.append(batch_acc)
     print(f"Test accuracy for {name}: {np.mean(epoch_accuracies)}")
 
-    table.add_row([name, f"{train_time:.6f}", f"{test_acc:.4f}", count_params(model)])
+    table.add_row([name, f"{train_time:.6f}", f"{np.mean(epoch_accuracies):.4f}", count_params(model)])
 
     return (losses, accuracies, table)
 
@@ -201,7 +201,7 @@ def main():
 
     #study 1
     #CNN compare
-    model=CNN.to(device)
+    model=CNN().to(device)
     losses, accuracies, table=do_experiment(model, train_dl, test_dl, table, name="CNN")
     visualize(5, losses, accuracies, i, name="CNN")
     i+=1
