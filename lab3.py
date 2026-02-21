@@ -43,15 +43,17 @@ class FMNISTDataset(Dataset):
       x- image tensor shape of (N, 28, 28)
       y- label tensor or shape (N,)
       """
-       x = x.view(-1, 1, 28, 28)
-       x = x.float()/255
-       self.x, self.y = x, y
+      x = x.view(-1, 1, 28, 28)
+      x = x.float()/255
+      self.x, self.y = x, y
+
    def __getitem__(self, ix):
+       """ returns a sample from the dataset """
        return self.x[ix].to(device), self.y[ix].to(device)
-      """ returns a sample from the dataset """
+    
    def __len__(self):
       """ returns total #of samples """
-       return len(self.x)
+      return len(self.x)
 
 train_dataset = FMNISTDataset(x_train, y_train)
 train_dl = DataLoader(train_dataset, batch_size=32, shuffle=True)
@@ -64,23 +66,23 @@ class MLP(nn.Module):
    MLP model format for testing
    Includes Batch Normalization and Dropout
    """
-    def __init__(self):
+   def __init__(self):
         super().__init__()
         self.input_to_hidden_layer = nn.Linear(28 * 28, 1000)
         self.batch_norm = nn.BatchNorm1d(1000)
         self.hidden_layer_activation = nn.ReLU()
         self.dropout = nn.Dropout(0.25)
         self.hidden_to_output_layer = nn.Linear(1000, 10)
-    def forward(self, x):
+   def forward(self, x):
        """ Forward pass of the MLP"""
         #must flatten layers for dataset to match 
-        x = torch.flatten(x,1) #had to use chatgpt to find this fix 
-        x = self.input_to_hidden_layer(x)
-        x = self.batch_norm(x)
-        x = self.hidden_layer_activation(x)
-        x = self.dropout(x)
-        x = self.hidden_to_output_layer(x)
-        return x
+       x = torch.flatten(x,1) #had to use chatgpt to find this fix 
+       x = self.input_to_hidden_layer(x)
+       x = self.batch_norm(x)
+       x = self.hidden_layer_activation(x)
+       x = self.dropout(x)
+       x = self.hidden_to_output_layer(x)
+       return x
 
 class CNN(nn.Module):
    """
@@ -90,7 +92,7 @@ class CNN(nn.Module):
    -Batch Normalization
    -Dropout
    """
-    def __init__(self, 
+   def __init__(self, 
                  filters=64, 
                  kernel_size=3, 
                  use_batchnorm=False, 
@@ -126,12 +128,12 @@ class CNN(nn.Module):
             nn.ReLU(),
             nn.Linear(200, 10)
         )
-    
-    def forward(self, x):
+
+   def forward(self, x):
        """ forward pass of the CNN """
-        x = self.features(x)
-        x = self.classify(x)
-        return x
+       x = self.features(x)
+       x = self.classify(x)
+       return x
 
 
 def count_params(model):
@@ -168,17 +170,17 @@ def train_epoch(model, dataloader, opt, loss_fn):
 @torch.no_grad()
 def accuracy(model, dataloader):
    """ checks arruracy of the model """
-    model.eval()
-    correct=0
-    samples=0
+   model.eval()
+   correct=0
+   samples=0
 
-    for x,y in dataloader:
+   for x,y in dataloader:
        outputs=model(x)
        preds=outputs.argmax(dim=1)
        correct+=(preds==y).sum().item()
        samples+=len(y)
 
-    return correct/samples
+   return correct/samples
 
 
 
@@ -190,7 +192,6 @@ def do_experiment(model, train_dl, test_dl, table, name):
     and then runs and tests each experiment, and then logs accuracy and time into a table.
     """
     model.to(device)
-    #separate test and train functions so it doesn't train every time? 
     
     loss_func = nn.CrossEntropyLoss()
     opt = Adam(model.parameters(), lr=1e-3)
@@ -288,8 +289,8 @@ def main():
 
     #Batch Norm compare
     model_bn=CNN(filters=best_filters, kernel_size=best_kernel, use_batchnorm=True, use_dropout=False).to(device)
-    losses, accuracies, table, test_acc=do_experiment(model_bn, train_dl, test_dl, table, name="Chosen CNN with Batch Normalization")
-    visualize(5, losses, accuracies, i, name="Chosen CNN with Batch Normalization")
+    losses, accuracies, table, test_acc=do_experiment(model_bn, train_dl, test_dl, table, name="Chosen CNN with BN")
+    visualize(5, losses, accuracies, i, name="Chosen CNN with BN")
     i+=1
 
     #Dropout compare
@@ -298,7 +299,8 @@ def main():
     visualize(5, losses, accuracies, i, name="Chosen CNN with Dropout")
     i+=1
     
-    
+    #print training time and test accuracy table 
+    print(table)
 
 
 if __name__ == "__main__":
